@@ -46,27 +46,32 @@
 #intro video{position:absolute;top:0;left:var(--x,0);width:var(--w,100%);height:var(--h,auto);object-fit:cover;object-position:center top;transform-origin:0 0;transform:var(--t,none);background:#3c0105 url(assets/intro-poster.jpg) center top/cover no-repeat;pointer-events:none;will-change:transform}
 #intro.is-landing{background-color:rgba(60,1,5,0)}
 #intro.is-landing video{transform:none;transition:transform .85s cubic-bezier(.65,0,.35,1)}
-#intro.is-gone{opacity:0;pointer-events:none}
-html.intro-lock,html.intro-lock body{overflow:hidden}</style></head><body><div id="intro" aria-hidden="true"><video id="intro-video" src="assets/intro.mp4" poster="assets/intro-poster.jpg" muted autoplay playsinline webkit-playsinline preload="auto" disablepictureinpicture disableremoteplayback></video></div>
+#intro.is-gone{opacity:0;pointer-events:none}</style></head><body><div id="intro" aria-hidden="true"><video id="intro-video" src="assets/intro.mp4" poster="assets/intro-poster.jpg" muted autoplay playsinline webkit-playsinline preload="auto" disablepictureinpicture disableremoteplayback></video></div>
 <script>
 (()=>{
  const intro=document.getElementById('intro'),video=document.getElementById('intro-video'),root=document.documentElement;
  if('scrollRestoration' in history)history.scrollRestoration='manual';
- root.classList.add('intro-lock');
+ // block scrolling without hiding the scrollbar (hiding it would shift the page sideways at the end)
+ const keys={32:1,33:1,34:1,35:1,36:1,37:1,38:1,39:1,40:1};
+ const block=e=>{if(e.type!=='keydown'||keys[e.keyCode])e.preventDefault();};
+ const opts={passive:false};['wheel','touchmove','keydown'].forEach(t=>addEventListener(t,block,opts));
  video.muted=true;video.defaultMuted=true;
  // The last frame of the video is the first screen of the site. While playing, the video fills the
  // screen; at the end it "lands" exactly onto the first screen and the rest of the site appears around it.
  const place=()=>{
-  const vw=root.clientWidth||innerWidth,vh=innerHeight,W=Math.min(vw,402),H=W*16/9,L=(vw-W)/2;
+  const page=document.getElementById('page'),vw=root.clientWidth||innerWidth,vh=innerHeight;
+  let W=Math.min(vw,402),L=(vw-W)/2;
+  if(page){const b=page.getBoundingClientRect();if(b.width){W=b.width;L=b.left;}}
+  const H=W*16/9;
   const s=vw/vh>0.8?Math.max(1,vh/H):Math.max(vw/W,vh/H);
   intro.style.setProperty('--x',L+'px');intro.style.setProperty('--w',W+'px');intro.style.setProperty('--h',H+'px');
   intro.style.setProperty('--t','translate('+((vw-W*s)/2-L)+'px,'+((vh-H*s)/2)+'px) scale('+s+')');
  };
- place();addEventListener('resize',place);
+ place();addEventListener('resize',place);document.addEventListener('DOMContentLoaded',place);addEventListener('load',place);
  let done=false,landing=false,started=false;
- const remove=()=>{if(done)return;done=true;removeEventListener('resize',place);root.classList.remove('intro-lock');window.scrollTo(0,0);intro.classList.add('is-gone');setTimeout(()=>intro.remove(),250);};
+ const remove=()=>{if(done)return;done=true;removeEventListener('resize',place);['wheel','touchmove','keydown'].forEach(t=>removeEventListener(t,block,opts));window.scrollTo(0,0);intro.classList.add('is-gone');setTimeout(()=>intro.remove(),250);};
  const hero=new Image();hero.src='assets/img/63032cd6fa.webp';
- const land=()=>{if(landing||done)return;landing=true;window.scrollTo(0,0);intro.classList.add('is-landing');setTimeout(remove,900);};
+ const land=()=>{if(landing||done)return;landing=true;window.scrollTo(0,0);place();intro.classList.add('is-landing');setTimeout(remove,900);};
  const end=()=>{if(landing||done)return;if(hero.complete&&hero.naturalWidth)land();else{hero.onload=hero.onerror=land;setTimeout(land,1500);}};
  // the final ~0.6 s of the video is a still frame: start landing a little before the end
  video.addEventListener('timeupdate',()=>{if(video.duration&&video.currentTime>=video.duration-0.55)end();});
