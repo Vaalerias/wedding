@@ -10,6 +10,17 @@ const HEADERS = ['Дата и время', 'Имя и фамилия', 'Прис
 // Необязательно: адрес почты для уведомлений о каждом новом ответе ('' — без писем).
 const NOTIFY_EMAIL = '';
 
+// Запустить вручную из редактора: часовой пояс таблицы, заголовки, удаление тестовых строк.
+function setup() {
+  SpreadsheetApp.openById(SPREADSHEET_ID).setSpreadsheetTimeZone('Europe/Moscow');
+  const sheet = getSheet();
+  // удалить тестовые строки
+  const values = sheet.getDataRange().getValues();
+  for (let r = values.length - 1; r >= 1; r--) {
+    if (String(values[r][1]).indexOf('ТЕСТ Claude') === 0) sheet.deleteRow(r + 1);
+  }
+}
+
 function doPost(e) {
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
@@ -63,9 +74,4 @@ function clean(value, max) {
 
 function json(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
-}
-
-// Запустить один раз вручную из редактора: создаёт заголовки и выдаёт доступ к таблице.
-function setup() {
-  getSheet();
 }
